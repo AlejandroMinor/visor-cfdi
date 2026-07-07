@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visor CFDI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-logo">XML</div>
+      <div class="brand-text">
+        <div class="brand-title-row">
+          <span class="brand-title">Visor CFDI</span>
+          <span class="badge">CFDI 4.0</span>
+        </div>
+        <span class="brand-sub">Visualiza tus facturas electrónicas</span>
+      </div>
+    </div>
+    <div class="privacy">
+      <span class="dot"></span>
+      <span>Procesamiento 100% local — tus XML nunca se suben a ningún servidor</span>
+    </div>
+  </header>
+
+  <div id="body">
+
+    <aside id="sidebar">
+      <div id="dropzone" class="dropzone">
+        <div class="dz-icon">⤓</div>
+        <div class="dz-title">Arrastra tus XML aquí</div>
+        <div class="dz-sub">o haz clic para seleccionar archivos</div>
+      </div>
+      <input id="file-input" type="file" accept=".xml,text/xml" multiple hidden>
+      <div id="files-panel"></div>
+    </aside>
+
+    <main id="main"></main>
+
+  </div>
+</div>
+
+<script src="main.js"></script>
+
+</body>
+</html>

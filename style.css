@@ -1,0 +1,131 @@
+/* Estilos de Visor CFDI */
+
+/* ---- Base ---- */
+:root { --acento:#14284A; }
+body { margin:0; font-family:'IBM Plex Sans',system-ui,sans-serif; background:#ECEEF1; color:#17242C; -webkit-font-smoothing:antialiased; }
+a { color:var(--acento); }
+a:hover { color:#0E1B33; }
+* { box-sizing:border-box; }
+
+/* ---- Layout ---- */
+#app { display:grid; grid-template-rows:auto 1fr; height:100vh; }
+#body { display:grid; grid-template-columns:320px 1fr; min-height:0; }
+#main { overflow:auto; padding:0; min-height:0; }
+
+#topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 24px; background:#FFFFFF; border-bottom:1px solid #E1E6EA; }
+#sidebar { display:flex; flex-direction:column; gap:14px; padding:18px; background:#FFFFFF; border-right:1px solid #E1E6EA; overflow:auto; }
+#actionbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 28px; background:rgba(237,240,243,0.92); backdrop-filter:blur(6px); border-bottom:1px solid #E1E6EA; }
+#banner { width:100%; max-width:840px; display:flex; gap:10px; align-items:flex-start; padding:11px 16px; border-radius:10px; background:#FDF6E7; border:1px solid #F0DFB4; color:#7A5A12; font-size:12.5px; line-height:1.5; }
+#sheet { width:100%; max-width:840px; background:#FFFFFF; border:1px solid #E1E6EA; border-top:3px solid var(--tipo,var(--acento)); border-radius:12px; box-shadow:0 2px 10px rgba(23,36,44,0.05); padding:44px 48px; display:flex; flex-direction:column; gap:26px; }
+
+/* ---- Barra superior ---- */
+.brand { display:flex; align-items:center; gap:12px; }
+.brand-logo { width:34px; height:34px; border-radius:8px; display:grid; place-items:center; font:600 13px 'IBM Plex Mono',monospace; color:#fff; background:var(--acento); }
+.brand-text { display:flex; flex-direction:column; gap:1px; }
+.brand-title-row { display:flex; align-items:center; gap:8px; }
+.brand-title { font-size:16px; font-weight:600; }
+.badge { font:500 11px 'IBM Plex Mono',monospace; padding:2px 7px; border-radius:99px; background:#EDF0F3; color:#5A6B76; }
+.brand-sub { font-size:12px; color:#5A6B76; }
+.privacy { display:flex; align-items:center; gap:8px; font-size:12px; color:#5A6B76; }
+.dot { width:8px; height:8px; border-radius:99px; background:#16A34A; }
+
+/* ---- Zona de carga y lista de archivos ---- */
+.dropzone { display:flex; flex-direction:column; align-items:center; gap:4px; padding:22px 16px; border-radius:10px; cursor:pointer; text-align:center; border:1.5px dashed #C6CFD6; background:#FAFBFC; transition:border-color 0.15s, background 0.15s; }
+.dropzone.drag-over { border-color:var(--acento); background:rgba(20,40,74,0.06); }
+.dz-icon { font-size:20px; color:#8795A0; }
+.dz-title { font-size:13px; font-weight:600; }
+.dz-sub { font-size:12px; color:#5A6B76; }
+.files-head { display:flex; align-items:baseline; justify-content:space-between; }
+.files-head-label { font-size:12px; font-weight:600; color:#5A6B76; text-transform:uppercase; letter-spacing:0.06em; }
+.clear-all { font-size:12px; color:#B4483C; cursor:pointer; }
+.files-list { display:flex; flex-direction:column; gap:8px; }
+.file-item { padding:10px 12px; border-radius:9px; cursor:pointer; border:1px solid #E7EBEE; background:#FFFFFF; }
+.file-item.is-selected { border-color:var(--acento); background:rgba(20,40,74,0.05); box-shadow:0 0 0 1px var(--acento); }
+.file-item.is-error { cursor:default; }
+.file-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.file-name { font:500 12px 'IBM Plex Mono',monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.file-remove { flex:none; width:18px; height:18px; display:grid; place-items:center; border-radius:5px; color:#8795A0; cursor:pointer; font-size:13px; }
+.file-sub { font-size:12px; margin-top:3px; color:#5A6B76; }
+.file-item.is-error .file-sub { color:#B4483C; }
+
+/* ---- Estado vacío ---- */
+.empty { height:100%; display:grid; place-items:center; padding:40px; }
+.empty-inner { display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; max-width:380px; }
+.empty-icon { width:64px; height:64px; border-radius:16px; background:#FFFFFF; border:1px solid #E1E6EA; display:grid; place-items:center; font:600 15px 'IBM Plex Mono',monospace; color:#8795A0; }
+.empty-title { font-size:16px; font-weight:600; margin-top:6px; }
+.empty-text { font-size:13px; color:#5A6B76; line-height:1.55; }
+
+/* ---- Vista del comprobante ---- */
+.doc { display:flex; flex-direction:column; gap:0; min-height:100%; }
+.actionbar-name { font:500 12px 'IBM Plex Mono',monospace; color:#5A6B76; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.btn-print { flex:none; display:flex; align-items:center; gap:8px; padding:8px 16px; border:none; border-radius:8px; color:#fff; font:600 13px 'IBM Plex Sans',sans-serif; cursor:pointer; background:var(--acento); }
+.sheet-wrap { padding:24px 28px 48px; display:flex; flex-direction:column; gap:16px; align-items:center; }
+.banner-icon { font-weight:700; }
+
+/* ---- Emisor / receptor ---- */
+.party-row { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
+.party { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.party-right { flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.emisor-name { font-size:20px; font-weight:700; line-height:1.25; }
+.receptor-name { font-size:14.5px; font-weight:600; line-height:1.3; }
+.type-badge { font:600 12px 'IBM Plex Sans',sans-serif; padding:5px 12px; border-radius:99px; color:#fff; background:var(--tipo,var(--acento)); }
+.serie-folio { font-size:13px; color:#3D4E59; }
+.version { font:11px 'IBM Plex Mono',monospace; color:#8795A0; }
+
+/* ---- Etiquetas y valores reutilizables ---- */
+.sec-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#8795A0; }
+.field { display:flex; flex-direction:column; gap:2px; }
+.field-label { font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:#8795A0; }
+.field-value { font-size:12.5px; color:#17242C; }
+.field-value-mono { font:12px 'IBM Plex Mono',monospace; color:#17242C; }
+.rfc { font:500 13px 'IBM Plex Mono',monospace; color:#3D4E59; }
+.muted-sm { font-size:12.5px; color:#5A6B76; }
+.uso-value { font-size:13.5px; color:#17242C; }
+.mono { font-family:'IBM Plex Mono',monospace; }
+.total-row .mono { color:#17242C; }
+.total-row .mono.is-neg { color:#B4483C; }
+
+/* ---- UUID ---- */
+.uuid-box { display:flex; flex-direction:column; gap:4px; padding:12px 16px; border-radius:10px; background:#F4F6F8; border:1px solid #E7EBEE; }
+.uuid-label { font-size:10.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#8795A0; }
+.uuid-value { font:600 14.5px 'IBM Plex Mono',monospace; color:#17242C; word-break:break-all; }
+
+/* ---- Rejillas ---- */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.col { display:flex; flex-direction:column; gap:4px; }
+.datos-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px 20px; padding:16px 0; border-top:1px solid #EDF0F3; border-bottom:1px solid #EDF0F3; }
+
+/* ---- Conceptos ---- */
+.conceptos { display:flex; flex-direction:column; gap:8px; }
+.tbl { display:flex; flex-direction:column; border-radius:6px; overflow:hidden; font-size:12.5px; }
+.tbl-head { display:grid; grid-template-columns:64px 90px 1fr 110px 110px; background:#F4F6F8; font-weight:600; color:#5A6B76; }
+.tbl-row { display:grid; grid-template-columns:64px 90px 1fr 110px 110px; border-bottom:1px solid #EDF0F3; }
+.th { padding:8px 10px; }
+.th-right { padding:8px 10px; text-align:right; }
+.td { padding:10px; }
+.td-desc { padding:10px; line-height:1.5; }
+.td-num { padding:10px; text-align:right; font-family:'IBM Plex Mono',monospace; white-space:nowrap; }
+.clave { font:11px 'IBM Plex Mono',monospace; color:#8795A0; margin-top:4px; }
+
+/* ---- Totales ---- */
+.totales-wrap { display:flex; justify-content:flex-end; }
+.totales { width:320px; display:flex; flex-direction:column; gap:0; }
+.total-row { display:flex; justify-content:space-between; gap:16px; padding:7px 12px; font-size:13px; color:#3D4E59; }
+.total-grand { display:flex; justify-content:space-between; gap:16px; padding:11px 12px; margin-top:6px; border-radius:8px; background:#17242C; color:#fff; font-size:14px; font-weight:600; }
+
+/* ---- Timbre / sellos ---- */
+.timbre { display:flex; flex-direction:column; gap:12px; padding:18px; border-radius:10px; background:#F4F6F8; border:1px solid #E7EBEE; }
+.timbre-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px 20px; }
+.sellos { display:flex; flex-direction:column; gap:10px; border-top:1px solid #E1E6EA; padding-top:12px; }
+.sello-value { font:10px 'IBM Plex Mono',monospace; color:#5A6B76; word-break:break-all; line-height:1.5; }
+
+/* ---- Pie legal ---- */
+.legal { font-size:11px; color:#8795A0; font-style:italic; text-align:center; line-height:1.5; }
+
+/* ---- Impresión ---- */
+@page { margin:12mm; }
+@media print {
+  #topbar, #sidebar, #actionbar, #banner { display:none!important; }
+  #app, #body, #main { display:block!important; height:auto!important; overflow:visible!important; padding:0!important; background:#fff!important; }
+  #sheet { border:none!important; box-shadow:none!important; max-width:none!important; margin:0!important; border-radius:0!important; padding:0!important; }
+}
