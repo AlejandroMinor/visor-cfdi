@@ -162,6 +162,9 @@
         receptorCP: ar("DomicilioFiscalReceptor", "—"),
         usoCfdi: cat(ar("UsoCFDI"), "uso") || "—",
         datos, conceptos, totales, timbre,
+        tipo,
+        moneda,
+        total: parseFloat(c("Total")),
         totalFmt: money(c("Total"), moneda),
         selloCFD: c("Sello") || "—",
         selloSAT: at("SelloSAT") || "—"
@@ -232,6 +235,65 @@
         <span class="clear-all" data-clear>Quitar todos</span>
       </div>
       <div class="files-list">${rows}</div>`;
+  }
+
+  // ---- Resumen de los comprobantes cargados ----
+  // Agrupa por moneda y tipo; los Pagos solo se cuentan (su Total es 0).
+  const TIPO_ORDEN = ["I", "E", "P", "N", "T"];
+  const TIPO_PLURAL = { I:"Ingresos", E:"Egresos", P:"Pagos", N:"Nómina", T:"Traslados" };
+
+  function renderSummary() {
+    const panel = document.getElementById("summary-panel");
+    const ok = state.files.filter(f => !f.error);
+    if (!ok.length) { panel.innerHTML = ""; return; }
+
+    const porMoneda = {};
+    for (const f of ok) {
+      const m = f.model;
+      const cur = m.moneda || "MXN";
+      const g = porMoneda[cur] || (porMoneda[cur] = { count: 0, tipos: {} });
+      g.count++;
+      const t = g.tipos[m.tipo] || (g.tipos[m.tipo] = { sum: 0, count: 0 });
+      t.count++;
+      if (!isNaN(m.total)) t.sum += m.total;
+    }
+
+    const monedas = Object.keys(porMoneda).sort();
+    const bloques = monedas.map(cur => {
+      const g = porMoneda[cur];
+      const tipos = Object.keys(g.tipos).sort((a, b) => {
+        const ia = TIPO_ORDEN.indexOf(a), ib = TIPO_ORDEN.indexOf(b);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
+      const filas = tipos.map(tp => {
+        const t = g.tipos[tp];
+        const label = TIPO_PLURAL[tp] || (CAT.tipo[tp] || tp);
+        let monto;
+        if (tp === "P") monto = `<span class="sum-amount is-muted">—</span>`;
+        else if (tp === "E") monto = `<span class="sum-amount is-neg">−${esc(money(t.sum, cur))}</span>`;
+        else monto = `<span class="sum-amount">${esc(money(t.sum, cur))}</span>`;
+        return `
+          <div class="sum-row">
+            <span class="sum-tipo">${esc(label)}</span>
+            <span class="sum-count">(${t.count})</span>
+            ${monto}
+          </div>`;
+      }).join("");
+      const multiMoneda = monedas.length > 1;
+      return `
+        <div class="sum-cur">
+          ${multiMoneda ? `<div class="sum-cur-label">${esc(cur)}</div>` : ""}
+          ${filas}
+        </div>`;
+    }).join("");
+
+    const n = ok.length;
+    panel.innerHTML = `
+      <div class="summary-head">
+        <span class="files-head-label">Resumen</span>
+        <span class="summary-count">${n} comprobante${n === 1 ? "" : "s"}</span>
+      </div>
+      ${bloques}`;
   }
 
   // ---- Render del comprobante seleccionado ----
@@ -351,6 +413,7 @@
   }
 
   function render() {
+    renderSummary();
     renderFiles();
     renderMain();
   }
