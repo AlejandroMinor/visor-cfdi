@@ -17,9 +17,30 @@
   // ---- Estado ----
   const state = { files: [], sel: -1 };
 
+  const SIN_UUID = "Sin timbre — UUID no encontrado";
+
   // ---- Utilidades ----
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c =>
     ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+  function notify(msg) {
+    let box = document.getElementById("toasts");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "toasts";
+      document.body.appendChild(box);
+    }
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg; 
+    box.appendChild(t);
+    requestAnimationFrame(() => t.classList.add("show"));
+    setTimeout(() => {
+      t.classList.remove("show");
+      t.addEventListener("transitionend", () => t.remove(), { once: true });
+      setTimeout(() => t.remove(), 400);
+    }, 4000);
+  }
 
   function cat(code, map) {
     if (!code) return null;
@@ -126,7 +147,7 @@
       name,
       model: {
         version,
-        uuid: at("UUID") || "Sin timbre — UUID no encontrado",
+        uuid: at("UUID") || SIN_UUID,
         tipoLabel: CAT.tipo[tipo] || tipo,
         tipoCorto: CAT.tipo[tipo] || tipo,
         tipoColor,
@@ -154,11 +175,28 @@
     const xmls = all.filter(f => /\.xml$/i.test(f.name) || f.type.includes("xml"));
     if (xmls.length < all.length) {
       const n = all.length - xmls.length;
-      alert("Solo se permiten archivos .xml — se ignoró " + n + (n === 1 ? " archivo." : " archivos."));
+      notify("Solo se permiten archivos .xml — se ignoró " + n + (n === 1 ? " archivo." : " archivos."));
     }
     if (!xmls.length) return;
+
+
+    const uuidKey = p => (p.model && p.model.uuid !== SIN_UUID) ? p.model.uuid.trim().toUpperCase() : null;
+    const seen = new Set(state.files.map(uuidKey).filter(Boolean));
+
     const parsed = [];
-    for (const f of xmls) parsed.push(parse(await f.text(), f.name));
+    let dup = 0;
+    for (const f of xmls) {
+      const p = parse(await f.text(), f.name);
+      const key = uuidKey(p);
+      if (key && seen.has(key)) { dup++; continue; }
+      if (key) seen.add(key);
+      parsed.push(p);
+    }
+    if (dup) notify("Se omitió " + dup + (dup === 1
+      ? " archivo duplicado (mismo UUID ya cargado)."
+      : " archivos duplicados (mismo UUID ya cargado)."));
+    if (!parsed.length) return;
+
     const firstOk = parsed.findIndex(p => !p.error);
     if (state.sel === -1 && firstOk !== -1) state.sel = state.files.length + firstOk;
     state.files = state.files.concat(parsed);
