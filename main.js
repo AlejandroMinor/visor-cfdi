@@ -278,8 +278,9 @@
       const importe = f.error ? null : (f.model.pagos ? f.model.pagos.montoTotalFmt : f.model.totalFmt);
       const sub = f.error ? f.error : (importe ? importe + " · " : "") + f.model.tipoCorto;
       const cls = "file-item" + (i === state.sel ? " is-selected" : "") + (f.error ? " is-error" : "");
+      const tipoStyle = f.error ? "" : ` style="--tipo:${esc(f.model.tipoColor)}"`;
       return `
-        <div class="${cls}" data-index="${i}">
+        <div class="${cls}"${tipoStyle} data-index="${i}">
           <div class="file-row">
             <span class="file-name">${esc(f.name)}</span>
             <span class="file-remove" data-remove="${i}" title="Quitar">×</span>
