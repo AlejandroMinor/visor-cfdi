@@ -128,7 +128,7 @@
     const push = (label, value) => { if (value) datos.push({ label, value }); };
     push("Forma de pago", cat(c("FormaPago"), "forma"));
     push("Método de pago", cat(c("MetodoPago"), "metodo"));
-    push("Moneda", moneda + (c("TipoCambio") ? " · T.C. " + c("TipoCambio") : ""));
+    if (moneda !== "XXX") push("Moneda", moneda + (c("TipoCambio") ? " · T.C. " + c("TipoCambio") : ""));
     push("Lugar de expedición", "C.P. " + (c("LugarExpedicion") || "—"));
     push("Exportación", cat(c("Exportacion"), "exporta"));
     push("Condiciones de pago", c("CondicionesDePago"));
@@ -139,6 +139,62 @@
     pushT("RFC proveedor de certificación", at("RfcProvCertif"));
     pushT("No. certificado SAT", at("NoCertificadoSAT"));
     pushT("No. certificado emisor (CSD)", c("NoCertificado"));
+
+    // Complemento de Recepción de Pagos (1.0 o 2.0). Se identifica por localName,
+    let pagos = null;
+    const pagosNode = all.find(n => n.localName === "Pagos");
+    if (pagosNode) {
+      const totalesNode = [...pagosNode.children].find(n => n.localName === "Totales");
+      const montoTotal = totalesNode ? a(totalesNode)("MontoTotalPagos") : null;
+      const lista = [...pagosNode.children].filter(n => n.localName === "Pago").map(p => {
+        const ap = a(p);
+        const monedaP = ap("MonedaP") || moneda;
+        const doctos = [...p.getElementsByTagName("*")].filter(n => n.localName === "DoctoRelacionado").map(dr => {
+          const ad = a(dr);
+          const monedaDR = ad("MonedaDR") || monedaP;
+          return {
+            uuid: ad("IdDocumento") || "—",
+            serieFolio: [ad("Serie"), ad("Folio")].filter(Boolean).join("-") || null,
+            parcialidad: ad("NumParcialidad"),
+            saldoAnt: ad("ImpSaldoAnt") != null ? money(ad("ImpSaldoAnt"), monedaDR) : null,
+            pagado: ad("ImpPagado") != null ? money(ad("ImpPagado"), monedaDR) : null,
+            saldoInsoluto: ad("ImpSaldoInsoluto") != null ? money(ad("ImpSaldoInsoluto"), monedaDR) : null
+          };
+        });
+        // Impuestos causados con este pago (ImpuestosP). En pagos en parcialidades
+        // corresponden solo a la porción cubierta, no al total de la factura.
+        const impuestos = [];
+        const impuestosP = [...p.children].find(n => n.localName === "ImpuestosP");
+        if (impuestosP) {
+          [...impuestosP.getElementsByTagName("*")].forEach(n => {
+            const an = a(n);
+            if (n.localName === "TrasladoP") {
+              const nombre = CAT.imp[an("ImpuestoP")] || an("ImpuestoP") || "Impuesto";
+              const t = an("TasaOCuotaP") ? " " + tasa(an("TasaOCuotaP")) : "";
+              impuestos.push({ label: nombre + t + " (traslado)", value: money(an("ImporteP"), monedaP), neg: false });
+            } else if (n.localName === "RetencionP") {
+              const nombre = CAT.imp[an("ImpuestoP")] || an("ImpuestoP") || "Impuesto";
+              impuestos.push({ label: "Retención " + nombre, value: "− " + money(an("ImporteP"), monedaP), neg: true });
+            }
+          });
+        }
+        return {
+          fecha: fecha(ap("FechaPago")),
+          forma: cat(ap("FormaDePagoP"), "forma") || "—",
+          montoFmt: money(ap("Monto"), monedaP),
+          numOperacion: ap("NumOperacion"),
+          doctos, impuestos
+        };
+      });
+      const primerPago = [...pagosNode.children].find(n => n.localName === "Pago");
+      const monedaPago = (primerPago && a(primerPago)("MonedaP")) || moneda;
+      pagos = {
+        // MontoTotalPagos siempre se expresa en MXN (regla del complemento 2.0).
+        montoTotalFmt: montoTotal != null ? money(montoTotal, "MXN") : null,
+        moneda: monedaPago,  // moneda real del pago, para agrupar en el resumen
+        lista
+      };
+    }
 
     const tipo = c("TipoDeComprobante") || "?";
     const tipoColor = { I:"#047857", E:"#B4483C", P:"#2563EB", N:"#7C3AED", T:"#B45309" }[tipo] || "#14284A";
@@ -161,7 +217,7 @@
         receptorRegimen: cat(ar("RegimenFiscalReceptor"), "regimen") || "—",
         receptorCP: ar("DomicilioFiscalReceptor", "—"),
         usoCfdi: cat(ar("UsoCFDI"), "uso") || "—",
-        datos, conceptos, totales, timbre,
+        datos, conceptos, totales, timbre, pagos,
         tipo,
         moneda,
         total: parseFloat(c("Total")),
@@ -218,7 +274,9 @@
     const panel = document.getElementById("files-panel");
     if (!state.files.length) { panel.innerHTML = ""; return; }
     const rows = state.files.map((f, i) => {
-      const sub = f.error ? f.error : f.model.totalFmt + " · " + f.model.tipoCorto;
+      // En los Pagos el Total es 0 (moneda XXX); se muestra el monto pagado.
+      const importe = f.error ? null : (f.model.pagos ? f.model.pagos.montoTotalFmt : f.model.totalFmt);
+      const sub = f.error ? f.error : (importe ? importe + " · " : "") + f.model.tipoCorto;
       const cls = "file-item" + (i === state.sel ? " is-selected" : "") + (f.error ? " is-error" : "");
       return `
         <div class="${cls}" data-index="${i}">
@@ -250,7 +308,8 @@
     const porMoneda = {};
     for (const f of ok) {
       const m = f.model;
-      const cur = m.moneda || "MXN";
+      // Los Pagos traen Moneda "XXX" (placeholder); se agrupan por la moneda real del pago.
+      const cur = (m.moneda === "XXX" && m.pagos) ? m.pagos.moneda : (m.moneda || "MXN");
       const g = porMoneda[cur] || (porMoneda[cur] = { count: 0, tipos: {} });
       g.count++;
       const t = g.tipos[m.tipo] || (g.tipos[m.tipo] = { sum: 0, count: 0 });
@@ -332,6 +391,41 @@
     const timbre = d.timbre.map(t => `
       <div class="field"><span class="field-label">${esc(t.label)}</span><span class="field-value-mono">${esc(t.value)}</span></div>`).join("");
 
+    const drField = (label, value, mono) => value
+      ? `<div class="field"><span class="field-label">${esc(label)}</span><span class="${mono ? "field-value-mono" : "field-value"}">${esc(value)}</span></div>`
+      : "";
+    const pagosHtml = d.pagos ? `
+      <div class="pagos">
+        <div class="sec-label">Pagos recibidos</div>
+        ${d.pagos.montoTotalFmt ? `<div class="pagos-total"><span>Total pagado</span><span class="mono">${esc(d.pagos.montoTotalFmt)}</span></div>` : ""}
+        ${d.pagos.lista.map(p => `
+          <div class="pago-card">
+            <div class="pago-head">
+              <div class="pago-monto">${esc(p.montoFmt)}</div>
+              <div class="pago-meta">
+                <span class="muted-sm">${esc(p.fecha)}</span>
+                <span class="muted-sm">${esc(p.forma)}</span>
+                ${p.numOperacion ? `<span class="muted-sm">Op. ${esc(p.numOperacion)}</span>` : ""}
+              </div>
+            </div>
+            ${p.doctos.length ? `<div class="dr-list">${p.doctos.map(dr => `
+              <div class="dr">
+                ${drField("Documento relacionado", dr.uuid, true)}
+                <div class="dr-grid">
+                  ${drField("Serie-Folio", dr.serieFolio, true)}
+                  ${drField("Parcialidad", dr.parcialidad, false)}
+                  ${drField("Saldo anterior", dr.saldoAnt, true)}
+                  ${drField("Pagado", dr.pagado, true)}
+                  ${drField("Saldo insoluto", dr.saldoInsoluto, true)}
+                </div>
+              </div>`).join("")}</div>` : ""}
+            ${p.impuestos.length ? `<div class="pago-impuestos">
+              <span class="field-label">Impuestos del pago</span>
+              ${p.impuestos.map(t => `<div class="total-row"><span>${esc(t.label)}</span><span class="mono${t.neg ? " is-neg" : ""}">${esc(t.value)}</span></div>`).join("")}
+            </div>` : ""}
+          </div>`).join("")}
+      </div>` : "";
+
     main.innerHTML = `
       <div class="doc">
         <div id="actionbar">
@@ -380,6 +474,7 @@
 
             <div class="datos-grid">${datos}</div>
 
+            ${d.pagos ? pagosHtml : `
             <div class="conceptos">
               <div class="sec-label">Conceptos</div>
               <div class="tbl">
@@ -399,7 +494,7 @@
                 ${totales}
                 <div class="total-grand"><span>Total</span><span class="mono">${esc(d.totalFmt)}</span></div>
               </div>
-            </div>
+            </div>`}
 
             <div class="timbre">
               <div class="sec-label">Timbre Fiscal Digital</div>

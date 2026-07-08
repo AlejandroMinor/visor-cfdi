@@ -127,6 +127,20 @@ a:hover { color:#0E1B33; }
 .total-row { display:flex; justify-content:space-between; gap:16px; padding:7px 12px; font-size:13px; color:#3D4E59; }
 .total-grand { display:flex; justify-content:space-between; gap:16px; padding:11px 12px; margin-top:6px; border-radius:8px; background:#17242C; color:#fff; font-size:14px; font-weight:600; }
 
+/* ---- Complemento de pagos ---- */
+.pagos { display:flex; flex-direction:column; gap:12px; }
+.pagos-total { display:flex; justify-content:space-between; gap:16px; padding:11px 16px; border-radius:8px; background:#17242C; color:#fff; font-size:14px; font-weight:600; }
+.pago-card { display:flex; flex-direction:column; gap:12px; padding:14px 16px; border-radius:10px; border:1px solid #E7EBEE; background:#FFFFFF; }
+.pago-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+.pago-monto { font:700 18px 'IBM Plex Sans',sans-serif; color:#17242C; }
+.pago-meta { display:flex; flex-direction:column; align-items:flex-end; gap:2px; text-align:right; }
+.dr-list { display:flex; flex-direction:column; gap:10px; border-top:1px solid #EDF0F3; padding-top:12px; }
+.dr { display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:8px; background:#F4F6F8; }
+.dr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px 16px; }
+.dr .field-value-mono { overflow-wrap:anywhere; }
+.pago-impuestos { display:flex; flex-direction:column; gap:2px; border-top:1px solid #EDF0F3; padding-top:12px; }
+.pago-impuestos .field-label { margin-bottom:4px; }
+
 /* ---- Timbre / sellos ---- */
 .timbre { display:flex; flex-direction:column; gap:12px; padding:18px; border-radius:10px; background:#F4F6F8; border:1px solid #E7EBEE; }
 .timbre-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px 20px; }
