@@ -10,7 +10,8 @@ Se busca una forma sencilla de visualizar los XML sin comprometer información p
 
 - Visualiza **facturas y notas de crédito** (CFDI de Ingreso y Egreso) con sus conceptos, impuestos y totales.
 - Soporta el **complemento de recepción de pagos** (1.0 y 2.0): muestra los pagos recibidos, las facturas que cada pago salda (parcialidad y saldos) y el desglose de impuestos del pago.
-- Los CFDI de **Nómina** y **Traslado** se muestran solo a nivel base; aún no se leen sus complementos (nómina / carta porte).
+- Soporta el **complemento de nómina** (1.2): muestra los datos del trabajador, las percepciones, deducciones y otros pagos, y el neto a pagar.
+- Los CFDI de **Traslado** se muestran solo a nivel base; aún no se lee su complemento (carta porte).
 - Carga **varios archivos a la vez** (arrastrar y soltar o seleccionar) con una lista lateral, coloreada por tipo de comprobante.
 - **Resumen** de lo cargado, agrupado por moneda y tipo.
 - **Evita duplicados** por UUID al cargar el mismo comprobante dos veces.

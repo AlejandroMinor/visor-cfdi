@@ -145,6 +145,19 @@ a:hover { color:#0E1B33; }
 .pago-impuestos { display:flex; flex-direction:column; gap:2px; border-top:1px solid #EDF0F3; padding-top:12px; }
 .pago-impuestos .field-label { margin-bottom:4px; }
 
+/* ---- Complemento de nómina ---- */
+.nomina { display:flex; flex-direction:column; gap:22px; }
+.nom-section { display:flex; flex-direction:column; gap:10px; }
+.nom-tbl { display:flex; flex-direction:column; border:1px solid #EDF0F3; border-radius:6px; overflow:hidden; font-size:12.5px; }
+.nom-head, .nom-row { display:grid; gap:10px; padding:9px 12px; align-items:baseline; }
+.nom-head { background:#F4F6F8; font-weight:600; color:#5A6B76; }
+.nom-row { border-top:1px solid #EDF0F3; }
+.nom-3 { grid-template-columns:1fr 110px 110px; }
+.nom-2 { grid-template-columns:1fr 130px; }
+.nom-num { text-align:right; white-space:nowrap; }
+.nom-row .nom-num { font-family:'IBM Plex Mono',monospace; }
+.nom-sub { font-size:11px; color:#8795A0; }
+
 /* ---- Timbre / sellos ---- */
 .timbre { display:flex; flex-direction:column; gap:12px; padding:18px; border-radius:10px; background:#F4F6F8; border:1px solid #E7EBEE; }
 .timbre-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px 20px; }
@@ -189,6 +202,8 @@ a:hover { color:#0E1B33; }
   .conceptos { min-width:0; }
   .tbl { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .tbl-head, .tbl-row { min-width:480px; }
+  .nom-tbl { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .nom-head.nom-3, .nom-row.nom-3 { min-width:420px; }
 }
 
 /* ---- Impresión ---- */

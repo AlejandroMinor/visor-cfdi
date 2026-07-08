@@ -11,7 +11,12 @@
     metodo: { "PUE":"Pago en una sola exhibición","PPD":"Pago en parcialidades o diferido" },
     tipo: { "I":"Ingreso","E":"Egreso","T":"Traslado","N":"Nómina","P":"Pago" },
     imp: { "001":"ISR","002":"IVA","003":"IEPS" },
-    exporta: { "01":"No aplica","02":"Definitiva","03":"Temporal","04":"Definitiva A1" }
+    exporta: { "01":"No aplica","02":"Definitiva","03":"Temporal","04":"Definitiva A1" },
+    tipoNomina: { "O":"Ordinaria","E":"Extraordinaria" },
+    contrato: { "01":"Tiempo indeterminado","02":"Obra determinada","03":"Tiempo determinado","04":"Temporada","05":"Sujeto a prueba","06":"Capacitación inicial","07":"Pago por hora laborada","08":"Trabajo por comisión laboral","09":"Sin relación de trabajo","10":"Jubilación, pensión, retiro","99":"Otro contrato" },
+    regimenNom: { "02":"Sueldos y Salarios","03":"Jubilados","04":"Pensionados","05":"Asimilados: Miembros de Soc. Cooperativas","06":"Asimilados: Integrantes de Soc. y Asoc. Civiles","07":"Asimilados: Miembros de consejos","08":"Asimilados: Comisionistas","09":"Asimilados: Honorarios","10":"Asimilados: Acciones","11":"Asimilados: Otros","12":"Jubilados o Pensionados","13":"Indemnización o Separación","99":"Otro régimen" },
+    jornada: { "01":"Diurna","02":"Nocturna","03":"Mixta","04":"Por hora","05":"Reducida","06":"Continuada","07":"Partida","08":"Por turnos","99":"Otra jornada" },
+    periodicidad: { "01":"Diario","02":"Semanal","03":"Catorcenal","04":"Quincenal","05":"Mensual","06":"Bimestral","07":"Por unidad de obra","08":"Comisión","09":"Precio alzado","10":"Decenal","99":"Otra periodicidad" }
   };
 
   // ---- Estado ----
@@ -71,6 +76,13 @@
     return (Math.round(p * 100) / 100) + "%";
   }
 
+  function fechaDia(s) {
+    if (!s) return "—";
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    if (!m) return s;
+    return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  }
+
   // ---- Parseo del CFDI ----
   function parse(text, name) {
     let doc;
@@ -115,8 +127,12 @@
         const an = a(n);
         if (n.localName === "Traslado") {
           const nombre = CAT.imp[an("Impuesto")] || an("Impuesto") || "Impuesto";
-          const t = an("TasaOCuota") ? " " + tasa(an("TasaOCuota")) : "";
-          totales.push({ label: nombre + t + " (traslado)", value: money(an("Importe"), moneda), neg: false });
+          if (an("TipoFactor") === "Exento") {
+            totales.push({ label: nombre + " Exento (traslado)", value: "—", neg: false });
+          } else {
+            const t = an("TasaOCuota") ? " " + tasa(an("TasaOCuota")) : "";
+            totales.push({ label: nombre + t + " (traslado)", value: money(an("Importe"), moneda), neg: false });
+          }
         } else if (n.localName === "Retencion") {
           const nombre = CAT.imp[an("Impuesto")] || an("Impuesto") || "Impuesto";
           totales.push({ label: "Retención " + nombre, value: "− " + money(an("Importe"), moneda), neg: true });
@@ -135,7 +151,7 @@
 
     const timbre = [];
     const pushT = (label, value) => { if (value) timbre.push({ label, value }); };
-    pushT("Fecha de timbrado", fecha(at("FechaTimbrado")));
+    pushT("Fecha de timbrado", tfd ? fecha(at("FechaTimbrado")) : null);
     pushT("RFC proveedor de certificación", at("RfcProvCertif"));
     pushT("No. certificado SAT", at("NoCertificadoSAT"));
     pushT("No. certificado emisor (CSD)", c("NoCertificado"));
@@ -170,8 +186,12 @@
             const an = a(n);
             if (n.localName === "TrasladoP") {
               const nombre = CAT.imp[an("ImpuestoP")] || an("ImpuestoP") || "Impuesto";
-              const t = an("TasaOCuotaP") ? " " + tasa(an("TasaOCuotaP")) : "";
-              impuestos.push({ label: nombre + t + " (traslado)", value: money(an("ImporteP"), monedaP), neg: false });
+              if (an("TipoFactorP") === "Exento") {
+                impuestos.push({ label: nombre + " Exento (traslado)", value: "—", neg: false });
+              } else {
+                const t = an("TasaOCuotaP") ? " " + tasa(an("TasaOCuotaP")) : "";
+                impuestos.push({ label: nombre + t + " (traslado)", value: money(an("ImporteP"), monedaP), neg: false });
+              }
             } else if (n.localName === "RetencionP") {
               const nombre = CAT.imp[an("ImpuestoP")] || an("ImpuestoP") || "Impuesto";
               impuestos.push({ label: "Retención " + nombre, value: "− " + money(an("ImporteP"), monedaP), neg: true });
@@ -196,6 +216,69 @@
       };
     }
 
+    // Complemento de Nómina 1.2. El neto a pagar es el Total del comprobante.
+    let nomina = null;
+    const nomNode = all.find(n => n.localName === "Nomina");
+    if (nomNode) {
+      const anom = a(nomNode);
+      const wNode = [...nomNode.children].find(n => n.localName === "Receptor");
+      const patronNode = [...nomNode.children].find(n => n.localName === "Emisor");
+      const percNode = [...nomNode.children].find(n => n.localName === "Percepciones");
+      const dedNode = [...nomNode.children].find(n => n.localName === "Deducciones");
+      const otrosNode = [...nomNode.children].find(n => n.localName === "OtrosPagos");
+      const aw = a(wNode), apn = a(patronNode);
+
+      const percepciones = percNode ? [...percNode.children].filter(n => n.localName === "Percepcion").map(p => {
+        const ap = a(p);
+        return { concepto: ap("Concepto") || "—", gravado: money(ap("ImporteGravado"), moneda), exento: money(ap("ImporteExento"), moneda) };
+      }) : [];
+      const deducciones = dedNode ? [...dedNode.children].filter(n => n.localName === "Deduccion").map(d => {
+        const ad = a(d);
+        return { concepto: ad("Concepto") || "—", importe: money(ad("Importe"), moneda) };
+      }) : [];
+      const otrosPagos = otrosNode ? [...otrosNode.children].filter(n => n.localName === "OtroPago").map(o => {
+        const ao = a(o);
+        const subNode = [...o.children].find(n => n.localName === "SubsidioAlEmpleo");
+        return {
+          concepto: ao("Concepto") || "—",
+          importe: money(ao("Importe"), moneda),
+          subsidio: subNode ? money(a(subNode)("SubsidioCausado"), moneda) : null
+        };
+      }) : [];
+
+      const trabajador = [];
+      const pushW = (label, value) => { if (value) trabajador.push({ label, value }); };
+      pushW("CURP", aw("Curp"));
+      pushW("No. seguridad social", aw("NumSeguridadSocial"));
+      pushW("Puesto", aw("Puesto"));
+      pushW("Tipo de contrato", cat(aw("TipoContrato"), "contrato"));
+      pushW("Régimen", cat(aw("TipoRegimen"), "regimenNom"));
+      pushW("Jornada", cat(aw("TipoJornada"), "jornada"));
+      pushW("Periodicidad de pago", cat(aw("PeriodicidadPago"), "periodicidad"));
+      pushW("Antigüedad", aw("Antigüedad"));
+      pushW("Inicio de relación laboral", aw("FechaInicioRelLaboral") ? fechaDia(aw("FechaInicioRelLaboral")) : null);
+      pushW("No. empleado", aw("NumEmpleado"));
+      pushW("Salario diario integrado", aw("SalarioDiarioIntegrado") ? money(aw("SalarioDiarioIntegrado"), moneda) : null);
+      pushW("Cuenta bancaria", aw("CuentaBancaria") ? (aw("CuentaBancaria") + (aw("Banco") ? " · Banco " + aw("Banco") : "")) : null);
+      pushW("Entidad federativa", aw("ClaveEntFed"));
+
+      const datosNom = [];
+      const pushN = (label, value) => { if (value) datosNom.push({ label, value }); };
+      pushN("Tipo de nómina", cat(anom("TipoNomina"), "tipoNomina"));
+      pushN("Periodo", (anom("FechaInicialPago") && anom("FechaFinalPago")) ? fechaDia(anom("FechaInicialPago")) + " – " + fechaDia(anom("FechaFinalPago")) : null);
+      pushN("Fecha de pago", anom("FechaPago") ? fechaDia(anom("FechaPago")) : null);
+      pushN("Días pagados", anom("NumDiasPagados"));
+      pushN("Registro patronal", apn ? apn("RegistroPatronal") : null);
+
+      nomina = {
+        datosNom, trabajador, percepciones, deducciones, otrosPagos,
+        totalPercepcionesFmt: money(anom("TotalPercepciones"), moneda),
+        totalDeduccionesFmt: money(anom("TotalDeducciones"), moneda),
+        totalOtrosPagosFmt: anom("TotalOtrosPagos") ? money(anom("TotalOtrosPagos"), moneda) : null,
+        netoFmt: money(c("Total"), moneda)
+      };
+    }
+
     const tipo = c("TipoDeComprobante") || "?";
     const tipoColor = { I:"#047857", E:"#B4483C", P:"#2563EB", N:"#7C3AED", T:"#B45309" }[tipo] || "#14284A";
 
@@ -217,7 +300,7 @@
         receptorRegimen: cat(ar("RegimenFiscalReceptor"), "regimen") || "—",
         receptorCP: ar("DomicilioFiscalReceptor", "—"),
         usoCfdi: cat(ar("UsoCFDI"), "uso") || "—",
-        datos, conceptos, totales, timbre, pagos,
+        datos, conceptos, totales, timbre, pagos, nomina,
         tipo,
         moneda,
         total: parseFloat(c("Total")),
@@ -427,6 +510,47 @@
           </div>`).join("")}
       </div>` : "";
 
+    const nominaHtml = d.nomina ? `
+      <div class="nomina">
+        ${d.nomina.datosNom.length ? `<div class="nom-section">
+          <span class="sec-label">Datos de la nómina</span>
+          <div class="dr-grid">${d.nomina.datosNom.map(x => drField(x.label, x.value, false)).join("")}</div>
+        </div>` : ""}
+        <div class="nom-section">
+          <span class="sec-label">Datos del trabajador</span>
+          <div class="dr-grid">${d.nomina.trabajador.map(x => drField(x.label, x.value, false)).join("")}</div>
+        </div>
+        ${d.nomina.percepciones.length ? `<div class="nom-section">
+          <span class="sec-label">Percepciones</span>
+          <div class="nom-tbl">
+            <div class="nom-head nom-3"><span>Concepto</span><span class="nom-num">Gravado</span><span class="nom-num">Exento</span></div>
+            ${d.nomina.percepciones.map(p => `<div class="nom-row nom-3"><span>${esc(p.concepto)}</span><span class="nom-num">${esc(p.gravado)}</span><span class="nom-num">${esc(p.exento)}</span></div>`).join("")}
+          </div>
+        </div>` : ""}
+        ${d.nomina.deducciones.length ? `<div class="nom-section">
+          <span class="sec-label">Deducciones</span>
+          <div class="nom-tbl">
+            <div class="nom-head nom-2"><span>Concepto</span><span class="nom-num">Importe</span></div>
+            ${d.nomina.deducciones.map(x => `<div class="nom-row nom-2"><span>${esc(x.concepto)}</span><span class="nom-num">${esc(x.importe)}</span></div>`).join("")}
+          </div>
+        </div>` : ""}
+        ${d.nomina.otrosPagos.length ? `<div class="nom-section">
+          <span class="sec-label">Otros pagos</span>
+          <div class="nom-tbl">
+            <div class="nom-head nom-2"><span>Concepto</span><span class="nom-num">Importe</span></div>
+            ${d.nomina.otrosPagos.map(x => `<div class="nom-row nom-2"><span>${esc(x.concepto)}${x.subsidio ? ` <span class="nom-sub">(subsidio causado ${esc(x.subsidio)})</span>` : ""}</span><span class="nom-num">${esc(x.importe)}</span></div>`).join("")}
+          </div>
+        </div>` : ""}
+        <div class="totales-wrap">
+          <div class="totales">
+            <div class="total-row"><span>Total percepciones</span><span class="mono">${esc(d.nomina.totalPercepcionesFmt)}</span></div>
+            ${d.nomina.totalOtrosPagosFmt ? `<div class="total-row"><span>Total otros pagos</span><span class="mono">${esc(d.nomina.totalOtrosPagosFmt)}</span></div>` : ""}
+            <div class="total-row"><span>Total deducciones</span><span class="mono is-neg">− ${esc(d.nomina.totalDeduccionesFmt)}</span></div>
+            <div class="total-grand"><span>Neto a pagar</span><span class="mono">${esc(d.nomina.netoFmt)}</span></div>
+          </div>
+        </div>
+      </div>` : "";
+
     main.innerHTML = `
       <div class="doc">
         <div id="actionbar">
@@ -475,7 +599,7 @@
 
             <div class="datos-grid">${datos}</div>
 
-            ${d.pagos ? pagosHtml : `
+            ${d.pagos ? pagosHtml : d.nomina ? nominaHtml : `
             <div class="conceptos">
               <div class="sec-label">Conceptos</div>
               <div class="tbl">
